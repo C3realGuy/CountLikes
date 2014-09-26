@@ -1,0 +1,11 @@
+<?xml version="1.0" standalone="yes" ?>
+<plugin id="CerealGuy:CountLikes">
+	<name>CountLikes</name>
+	<author>CerealGuy</author>
+	<description>Show recieved and given likes on User Profile.</description>
+	<version>1.0</version>
+	<hooks>
+		<function point="profile_areas" function="cl_profile_areas" filename="$plugindir/CountLikes" />
+		<function point="custom_fields" function="cl_custom_fields" filename="$plugindir/CountLikes" />
+	</hooks>
+</plugin>
