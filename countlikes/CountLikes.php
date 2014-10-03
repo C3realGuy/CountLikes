@@ -44,7 +44,7 @@ function cl_custom_fields($memID, $area, &$custom_fields){
 }
 
 function showLikes($memID){
-	global $txt, $context;
+	global $txt, $context, $settings;
 	$context[$context['profile_menu_name']]['tab_data'] = array(
 		'title' => $txt['cl_show_likes'],
 		'description' => $txt['cl_show_help'],
@@ -56,23 +56,65 @@ function showLikes($memID){
 			),
 		),
 	);
+	// Init
 	$context['is_given'] = isset($_GET['sa']) && $_GET['sa'] == 'given' ? true : false;
 	$queryArr =  array("id_member" => $memID);
+	$context['start'] = (int) $_REQUEST['start'];
+	$context['current_member'] = $memID;
+	// Default to 10.
+	if (empty($_REQUEST['viewscount']) || !is_numeric($_REQUEST['viewscount']))
+		$_REQUEST['viewscount'] = '10';
+	$settings['defaultMaxMessages'] = 10;
+	$reverse = false;
+	$range_limit = '';
+	$maxIndex = (int) $settings['defaultMaxMessages'];
 	if($context['is_given']){
 		$request = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = "post"', $queryArr);
 	}else{
 		$request = wesql::query('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}', $queryArr);
 
 	}
-	$countLikes = wesql::fetch_row($query)[0];
-	$context['page_index'] = 2;
+	list ($countLikes) = wesql::fetch_row($request);
+	wesql::free_result($request);
+
+	$request = wesql::query('SELECT MIN(id_content), MAX(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}',$queryArr);
+	list ($min_msg_member, $max_msg_member) = wesql::fetch_row($request);
+	wesql::free_result($request);
+	// Make sure the starting place makes sense and construct our friend the page index.
+	$context['page_index'] = template_page_index('<URL>?action=profile;area=cl_posts' . (!empty($board) ? ';board=' . $board : ''), $context['start'], $countLikes, $maxIndex);
+	$context['current_page'] = $context['start'] / $maxIndex;
+	// Reverse the query if we're past 50% of the pages for better performance.
+	$start = $context['start'];
+	$reverse = $_REQUEST['start'] > $countLikes / 2;
+	if ($reverse)
+	{
+		$maxIndex = $msgCount < $context['start'] + $settings['defaultMaxMessages'] + 1 && $countLikes > $context['start'] ? $countLikes - $context['start'] : (int) $settings['defaultMaxMessages'];
+		
+	}
+
+	// Guess the range of messages to be shown.
+	if ($countLikes > 1000)
+	{
+		$margin = floor(($max_msg_member - $min_msg_member) * (($start + $settings['defaultMaxMessages']) / $countLikes) + .1 * ($max_msg_member - $min_msg_member));
+		// Make a bigger margin for topics only.
+		if ($context['is_topics'])
+		{
+			$margin *= 5;
+			$range_limit = $reverse ? 't.id_first_msg < ' . ($min_msg_member + $margin) : 't.id_first_msg > ' . ($max_msg_member - $margin);
+		}
+		else
+			$range_limit = $reverse ? 'm.id_msg < ' . ($min_msg_member + $margin) : 'm.id_msg > ' . ($max_msg_member - $margin);
+	}
+
+
 	// Get Likes & Posts & info & stuff... lots to get
 	$base_query = 'SELECT b.id_msg, b.id_topic, b.id_board, b.poster_time, b.id_member, b.subject, b.poster_name, b.body, b.smileys_enabled, c.name as bname, d.member_name, c.id_cat, e.name as cname FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg LEFT JOIN {db_prefix}boards c ON c.id_board=b.id_board LEFT JOIN {db_prefix}members d ON d.id_member=b.id_member LEFT JOIN {db_prefix}categories e ON e.id_cat = c.id_cat WHERE a.content_type = "post"';
 	$oder_query = 'ORDER BY a.like_time DESC';
+	$limit_query = 'LIMIT ' . $start . ', ' . $maxIndex;
 	if($context['is_given']){
-		$request = wesql::query($base_query.'  AND a.id_member = {int:id_member} '.$oder_query, $queryArr);
+		$request = wesql::query($base_query.'  AND a.id_member = {int:id_member} '.$oder_query.' '.$limit_query, $queryArr);
 	}else{
-		$request = wesql::query($base_query.' AND b.id_member = {int:id_member} '.$oder_query, $queryArr);
+		$request = wesql::query($base_query.' AND b.id_member = {int:id_member} '.$oder_query.' '.$limit_query, $queryArr);
 
 	}
 	$msgs = array();

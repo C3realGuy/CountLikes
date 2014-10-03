@@ -7,7 +7,7 @@ are also able to see the posts where the
 user recieved or gave a like to.
 
 Installation
-.............
+------------
 
 You need to add the 'custom_fields' hook.
 Will tell you later more about it.
