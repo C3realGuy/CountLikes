@@ -12,7 +12,7 @@ function cl_profile_areas(&$profile_areas){
 							'any' => 'profile_view_any',
 						),
 						'subsections' => array(
-							'recieved' => array($txt['cl_show_recieved']),
+							'received' => array($txt['cl_show_received']),
 							'given' => array($txt['cl_show_given']),
 						),
 						
@@ -26,17 +26,17 @@ function cl_custom_fields($memID, $area, &$custom_fields){
 	$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = "post"', $query_arr);
 	$given_likes = wesql::fetch_row($query)[0];
 	$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}', $query_arr);
-	$recieved_likes = wesql::fetch_row($query)[0];
+	$received_likes = wesql::fetch_row($query)[0];
 	$custom_fields[] = array(
-		'name' => $txt['cl_recieved'],
-		'colname' => 'cl_recieved',
-		'output_html' => $recieved_likes,
+		'name' => $txt['cl_received'],
+		'colname' => 'cl_received',
+		'output_html' => $received_likes,
 		'placement' => null,
 		'privacy' => '',
 	);
 	$custom_fields[] = array(
 		'name' => $txt['cl_given'],
-		'colname' => 'cl_recieved',
+		'colname' => 'cl_received',
 		'output_html' => $given_likes,
 		'placement' => null,
 		'privacy' => '',
@@ -50,7 +50,7 @@ function showLikes($memID){
 		'description' => $txt['cl_show_help'],
 		'icon' => 'profile_sm.gif',
 		'tabs' => array(
-			'recieved' => array(
+			'received' => array(
 			),
 			'given' => array(
 			),

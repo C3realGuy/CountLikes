@@ -2,7 +2,7 @@
 <plugin id="CerealGuy:CountLikes">
 	<name>CountLikes</name>
 	<author>CerealGuy</author>
-	<description>Show recieved and given likes on User Profile.</description>
+	<description>Show received and given likes on User Profile.</description>
 	<version>1.0</version>
 	<hooks>
 		<function point="profile_areas" function="cl_profile_areas" filename="$plugindir/CountLikes" />
