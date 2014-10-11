@@ -21,6 +21,7 @@ function cl_profile_areas(&$profile_areas){
 }
 function cl_custom_fields($memID, $area, &$custom_fields){
 	global $txt;
+	if($area != 'summary') return;
 	loadPluginLanguage('CerealGuy:CountLikes', 'CountLikes');
 	$query_arr = array('id_member' => $memID);
 	$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = "post"', $query_arr);
