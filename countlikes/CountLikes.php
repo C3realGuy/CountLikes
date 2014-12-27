@@ -1,9 +1,9 @@
 <?php
 
 function cl_profile_areas(&$profile_areas){
-	global $txt;
+	global $txt, $context;
 	loadPluginLanguage('CerealGuy:CountLikes', 'CountLikes');
-	$insert = array('cl_posts' => array(
+	$insert = array('showlikes' => array(
 						'label' => $txt['cl_show_likes'],
 						'enabled' => true,
 						'function' => 'showLikes',
@@ -18,30 +18,16 @@ function cl_profile_areas(&$profile_areas){
 						
 					));
 	$profile_areas = array_insert($profile_areas, 'info areas showposts', $insert, true);
-}
-function cl_custom_fields($memID, $area, &$custom_fields){
-	global $txt;
-	if($area != 'summary') return;
-	loadPluginLanguage('CerealGuy:CountLikes', 'CountLikes');
-	$query_arr = array('id_member' => $memID);
-	$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = "post"', $query_arr);
-	$given_likes = wesql::fetch_row($query)[0];
-	$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}', $query_arr);
-	$received_likes = wesql::fetch_row($query)[0];
-	$custom_fields[] = array(
-		'name' => $txt['cl_received'],
-		'colname' => 'cl_received',
-		'output_html' => $received_likes,
-		'placement' => null,
-		'privacy' => '',
-	);
-	$custom_fields[] = array(
-		'name' => $txt['cl_given'],
-		'colname' => 'cl_received',
-		'output_html' => $given_likes,
-		'placement' => null,
-		'privacy' => '',
-	);
+	$context['test'] = "teeest000";
+	if(empty($_GET['area'])){
+		loadPluginLanguage('CerealGuy:CountLikes', 'CountLikes');
+		$query_arr = array('id_member' => $context['member']['id']);
+		$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = "post"', $query_arr);
+		$context['given_likes'] = wesql::fetch_row($query)[0];
+		$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}', $query_arr);
+		$context['received_likes'] = wesql::fetch_row($query)[0];
+
+	}
 }
 
 function showLikes($memID){
@@ -173,8 +159,7 @@ function template_showLikes()
 
 	$remove_confirm = JavaScriptEscape($txt['remove_message_confirm']);
 
-	// Are we displaying posts or attachments?
-	if (!isset($context['attachments']))
+	if (!empty($context['posts']))
 	{
 		// For every post to be displayed, give it its own div, and show the important details of the post.
 		foreach ($context['posts'] as $post)
@@ -242,69 +227,12 @@ function template_showLikes()
 			</div>
 		</div>';
 		}
+	}else{
+		echo '<div class="windowbg2 padding center">
+			'.($context['is_given'] ? $txt['cl_no_given'] :  $txt['cl_no_received']).'
+		</div>';
+	
 	}
-	else
-	{
-		echo '
-		<table class="table_grid w100 cs1 cp2 center">
-			<thead>
-				<tr class="titlebg">
-					<th class="left w25">
-						<a href="<URL>?action=profile;u=', $context['current_member'], ';area=showposts;sa=attach;sort=filename', ($context['sort_direction'] == 'down' && $context['sort_order'] == 'filename' ? ';asc' : ''), '">
-							', $txt['show_attach_filename'], '
-							', ($context['sort_order'] == 'filename' ? '<span class="sort_' . ($context['sort_direction'] == 'down' ? 'down' : 'up') . '"></span>' : ''), '
-						</a>
-					</th>
-					<th style="width: 12%">
-						<a href="<URL>?action=profile;u=', $context['current_member'], ';area=showposts;sa=attach;sort=downloads', ($context['sort_direction'] == 'down' && $context['sort_order'] == 'downloads' ? ';asc' : ''), '">
-							', $txt['show_attach_downloads'], '
-							', ($context['sort_order'] == 'downloads' ? '<span class="sort_' . ($context['sort_direction'] == 'down' ? 'down' : 'up') . '"></span>' : ''), '
-						</a>
-					</th>
-					<th class="left" style="width: 30%">
-						<a href="<URL>?action=profile;u=', $context['current_member'], ';area=showposts;sa=attach;sort=subject', ($context['sort_direction'] == 'down' && $context['sort_order'] == 'subject' ? ';asc' : ''), '">
-							', $txt['message'], '
-							', ($context['sort_order'] == 'subject' ? '<span class="sort_' . ($context['sort_direction'] == 'down' ? 'down' : 'up') . '"></span>' : ''), '
-						</a>
-					</th>
-					<th class="left">
-						<a href="<URL>?action=profile;u=', $context['current_member'], ';area=showposts;sa=attach;sort=posted', ($context['sort_direction'] == 'down' && $context['sort_order'] == 'posted' ? ';asc' : ''), '">
-						', $txt['show_attach_posted'], '
-						', ($context['sort_order'] == 'posted' ? '<span class="sort_' . ($context['sort_direction'] == 'down' ? 'down' : 'up') . '"></span>' : ''), '
-						</a>
-					</th>
-				</tr>
-			</thead>
-			<tbody>';
-
-		// Looks like we need to do all the attachments instead!
-		$alternate = false;
-		foreach ($context['attachments'] as $attachment)
-		{
-			echo '
-				<tr class="windowbg', $alternate ? '' : '2', '">
-					<td><a href="<URL>?action=dlattach;topic=', $attachment['topic'], '.0;attach=', $attachment['id'], '">', $attachment['filename'], '</a>', '</td>
-					<td>', $attachment['downloads'], '</td>
-					<td><a href="<URL>?topic=', $attachment['topic'], '.msg', $attachment['msg'], '#msg', $attachment['msg'], '" rel="nofollow">', $attachment['subject'], '</a></td>
-					<td>', $attachment['posted'], '</td>
-				</tr>';
-			$alternate = !$alternate;
-		}
-
-		// No posts? Just end the table with an informative message.
-		if ((isset($context['attachments']) && empty($context['attachments'])) || (!isset($context['attachments']) && empty($context['posts'])))
-			echo '
-				<tr>
-					<td class="windowbg2 padding center" colspan="4">
-						', isset($context['attachments']) ? $txt['show_attachments_none'] : ($context['is_topics'] ? $txt['show_topics_none'] : $txt['show_posts_none']), '
-					</td>
-				</tr>';
-
-		echo '
-			</tbody>
-		</table>';
-	}
-
 	// Show more page numbers.
 	echo '
 		<div class="pagesection" style="margin-bottom: 0">

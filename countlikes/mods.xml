@@ -1,0 +1,11 @@
+<file name="Profile.template.php">
+	<operation>
+		<search position="after"><dd>', $context['member']['action'], '</dd>';</search>
+		<add>if (isset($context['received_likes']))
+			echo '<dt>'.$txt['cl_received'].'</dt><dd><a href="<URL>?action=profile;u=', $context['id_member'], ';area=showlikes;sa=received">'.$context['received_likes'].'</a></dd>';
+	if (isset($context['given_likes']))
+			echo '<dt>'.$txt['cl_given'].'</dt><dd><a href="<URL>?action=profile;u=', $context['id_member'], ';area=showlikes;sa=given">'.$context['given_likes'].'</a></dd>';
+
+		</add>
+	</operation>
+</file>

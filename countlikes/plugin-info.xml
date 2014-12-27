@@ -6,6 +6,5 @@
 	<version>1.0</version>
 	<hooks>
 		<function point="profile_areas" function="cl_profile_areas" filename="$plugindir/CountLikes" />
-		<function point="custom_fields" function="cl_custom_fields" filename="$plugindir/CountLikes" />
 	</hooks>
 </plugin>
