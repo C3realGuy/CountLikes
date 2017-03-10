@@ -1,7 +1,7 @@
 <?php
 
-$txt['cl_received'] = 'Erhaltene Likes';
-$txt['cl_given'] = 'Vergebene Likes';
+$txt['cl_received'] = 'Erhaltene Likes:';
+$txt['cl_given'] = 'Vergebene Likes:';
 $txt['cl_show_likes'] = 'Zeige Likes';
 $txt['cl_show_received'] = 'Erhalten';
 $txt['cl_show_given'] = 'Vergeben';
