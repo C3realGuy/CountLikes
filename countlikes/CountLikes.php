@@ -1,37 +1,39 @@
 <?php
 
-function cl_profile_areas(&$profile_areas){
+function cl_profile_areas(&$profile_areas)
+{
 	global $txt, $context;
+
 	loadPluginLanguage('CerealGuy:CountLikes', 'CountLikes');
 	$insert = array('showlikes' => array(
-						'label' => $txt['cl_show_likes'],
-						'enabled' => true,
-						'function' => 'showLikes',
-						'permission' => array(
-							'own' => 'profile_view_own',
-							'any' => 'profile_view_any',
-						),
-						'subsections' => array(
-							'received' => array($txt['cl_show_received']),
-							'given' => array($txt['cl_show_given']),
-						),
-						
-					));
+		'label' => $txt['cl_show_likes'],
+		'enabled' => true,
+		'function' => 'showLikes',
+		'permission' => array(
+			'own' => 'profile_view_own',
+			'any' => 'profile_view_any',
+		),
+		'subsections' => array(
+			'received' => array($txt['cl_show_received']),
+			'given' => array($txt['cl_show_given']),
+		),
+	));
 	$profile_areas = array_insert($profile_areas, 'info areas showposts', $insert, true);
-	$context['test'] = "teeest000";
-	if(empty($_GET['area'])){
+	if (empty($_GET['area']))
+	{
 		loadPluginLanguage('CerealGuy:CountLikes', 'CountLikes');
 		$query_arr = array('id_member' => $context['member']['id']);
-		$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = "post"', $query_arr);
-		$context['given_likes'] = wesql::fetch_row($query)[0];
-		$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}', $query_arr);
-		$context['received_likes'] = wesql::fetch_row($query)[0];
-
+		$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = {literal:post}', $query_arr);
+		list ($context['given_likes']) = wesql::fetch_row($query);
+		$query = wesql::query('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = {literal:post} AND b.id_member = {int:id_member}', $query_arr);
+		list ($context['received_likes']) = wesql::fetch_row($query);
 	}
 }
 
-function showLikes($memID){
+function showLikes($memID)
+{
 	global $txt, $context, $settings;
+
 	$context[$context['profile_menu_name']]['tab_data'] = array(
 		'title' => $txt['cl_show_likes'],
 		'description' => $txt['cl_show_help'],
@@ -45,7 +47,7 @@ function showLikes($memID){
 	);
 	// Init
 	$context['is_given'] = isset($_GET['sa']) && $_GET['sa'] == 'given' ? true : false;
-	$queryArr =  array("id_member" => $memID);
+	$queryArr = array('id_member' => $memID);
 	$context['start'] = (int) $_REQUEST['start'];
 	$context['current_member'] = $memID;
 	// Default to 10.
@@ -55,18 +57,15 @@ function showLikes($memID){
 	$reverse = false;
 	$range_limit = '';
 	$maxIndex = (int) $settings['defaultMaxMessages'];
-	if($context['is_given']){
-		$request = wesql::query('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = "post"', $queryArr);
-	}else{
-		$request = wesql::query('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}', $queryArr);
+	if ($context['is_given'])
+		$countLikes = wesql::get('SELECT count(id_content) FROM {db_prefix}likes WHERE id_member = {int:id_member} AND content_type = {literal:post}', $queryArr);
+	else
+		$countLikes = wesql::get('SELECT count(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON (a.id_content = b.id_msg) WHERE a.content_type = {literal:post} AND b.id_member = {int:id_member}', $queryArr);
 
-	}
-	list ($countLikes) = wesql::fetch_row($request);
-	wesql::free_result($request);
-
-	$request = wesql::query('SELECT MIN(id_content), MAX(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = "post" AND b.id_member = {int:id_member}',$queryArr);
+	$request = wesql::query('SELECT MIN(id_content), MAX(id_content) FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg WHERE a.content_type = {literal:post} AND b.id_member = {int:id_member}',$queryArr);
 	list ($min_msg_member, $max_msg_member) = wesql::fetch_row($request);
 	wesql::free_result($request);
+
 	// Make sure the starting place makes sense and construct our friend the page index.
 	$context['page_index'] = template_page_index('<URL>?action=profile;area=cl_posts' . (!empty($board) ? ';board=' . $board : ''), $context['start'], $countLikes, $maxIndex);
 	$context['current_page'] = $context['start'] / $maxIndex;
@@ -74,40 +73,41 @@ function showLikes($memID){
 	$start = $context['start'];
 	$reverse = $_REQUEST['start'] > $countLikes / 2;
 	if ($reverse)
-	{
 		$maxIndex = $msgCount < $context['start'] + $settings['defaultMaxMessages'] + 1 && $countLikes > $context['start'] ? $countLikes - $context['start'] : (int) $settings['defaultMaxMessages'];
-		
-	}
 
 	// Guess the range of messages to be shown.
 	if ($countLikes > 1000)
 	{
 		$margin = floor(($max_msg_member - $min_msg_member) * (($start + $settings['defaultMaxMessages']) / $countLikes) + .1 * ($max_msg_member - $min_msg_member));
-		// No need for topics
 		$range_limit = $reverse ? 'm.id_msg < ' . ($min_msg_member + $margin) : 'm.id_msg > ' . ($max_msg_member - $margin);
 	}
 
-
 	// Get Likes & Posts & info & stuff... lots to get
-	$base_query = 'SELECT b.id_msg, b.id_topic, b.id_board, b.poster_time, b.id_member, b.subject, b.poster_name, b.body, b.smileys_enabled, c.name as bname, d.member_name, c.id_cat, e.name as cname FROM {db_prefix}likes a LEFT JOIN {db_prefix}messages b ON a.id_content=b.id_msg LEFT JOIN {db_prefix}boards c ON c.id_board=b.id_board LEFT JOIN {db_prefix}members d ON d.id_member=b.id_member LEFT JOIN {db_prefix}categories e ON e.id_cat = c.id_cat WHERE a.content_type = "post"';
-	$oder_query = 'ORDER BY a.like_time DESC';
-	$limit_query = 'LIMIT ' . $start . ', ' . $maxIndex;
-	if($context['is_given']){
-		$request = wesql::query($base_query.'  AND a.id_member = {int:id_member} '.$oder_query.' '.$limit_query, $queryArr);
-	}else{
-		$request = wesql::query($base_query.' AND b.id_member = {int:id_member} '.$oder_query.' '.$limit_query, $queryArr);
-
-	}
+	$base_query = '
+		SELECT
+			b.id_msg, b.id_topic, b.id_board, b.poster_time, b.id_member, b.subject, b.poster_name, b.body,
+			b.smileys_enabled, c.name as bname, d.member_name, c.id_cat, e.name as cname
+		FROM {db_prefix}likes a
+		INNER JOIN {db_prefix}messages b ON (a.id_content = b.id_msg)
+		LEFT JOIN {db_prefix}boards c ON (c.id_board = b.id_board)
+		LEFT JOIN {db_prefix}members d ON (d.id_member = b.id_member)
+		LEFT JOIN {db_prefix}categories e ON (e.id_cat = c.id_cat)
+		WHERE a.content_type = {literal:post}';
+	$order_query = 'ORDER BY a.like_time DESC';
+	$limit_query = 'LIMIT ' . (int) $start . ', ' . (int) $maxIndex;
+	if ($context['is_given'])
+		$request = wesql::query($base_query . ' AND a.id_member = {int:id_member} ' . $order_query . ' ' . $limit_query, $queryArr);
+	else
+		$request = wesql::query($base_query . ' AND b.id_member = {int:id_member} ' . $order_query . ' ' . $limit_query, $queryArr);
 	$msgs = array();
 	$boards = array();
 	$categories = array();
 	$counter = 1;
 	while ($row = wesql::fetch_assoc($request))
 	{
-		
 		$context['posts'][] = array(
 			'can_see' => true,
-			'user_href' => "<a href=\"<URL>?action=profile;u={$row['id_member']}\">{$row['member_name']}</a>",
+			'user_href' => '<a href="<URL>?action=profile;u=' . $row['id_member'] . '">' . $row['member_name'] . '</a>',
 			'body' => parse_bbc($row['body'], 'post', array('smileys' => $row['smileys_enabled'], 'cache' => $row['id_msg'], 'user' => $memID)),
 			'counter' => $counter,
 			'alternate' => 1,
@@ -133,14 +133,12 @@ function showLikes($memID){
 		);
 		$msgs[] = $row['id_msg'];
 		$counter++;
-		
 	}
 
 	loadSource('Display');
 	loadTemplate('Msg');
 	prepareLikeContext($msgs);
 	wetem::load('showLikes');
-
 }
 
 function template_showLikes()
@@ -221,12 +219,12 @@ function template_showLikes()
 			</div>
 		</div>';
 		}
-	}else{
-		echo '<div class="windowbg2 padding center">
-			'.($context['is_given'] ? $txt['cl_no_given'] :  $txt['cl_no_received']).'
-		</div>';
-	
 	}
+	else
+		echo '<div class="windowbg2 padding center">
+			', $context['is_given'] ? $txt['cl_no_given'] : $txt['cl_no_received'], '
+		</div>';
+
 	// Show more page numbers.
 	echo '
 		<div class="pagesection" style="margin-bottom: 0">
