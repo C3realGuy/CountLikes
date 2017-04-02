@@ -1,13 +1,18 @@
-CountLikes v0.1 (alpha)
------------------------
+# CountLikes
 
-A simple Plugin for Wedge which shows how
-many likes a user receieved and gave. You 
-are also able to see the posts where the
-user received or gave a like to.
+A [Wedge](http://github.com/wedge/wedge) Plugin which extends the forum software to show how many likes a user receieved and gave.
+
+Features:
+---------
+- Show how many likes a user receieved and gave
+- Make it possible to see which posts a user liked
 
 Installation
 ------------
 
-You need to add the 'custom_fields' hook.
-Will tell you later more about it.
+Drop the `countlikes` folder into `<WEDGE_INSTALL>/plugins` and activate it in the admin area.
+
+Contributors:
+-------------
+
+- [@Nao](http://github.com/Nao)
